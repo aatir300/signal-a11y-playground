@@ -1,0 +1,208 @@
+<!doctype html>
+<!-- lang tells screen readers which pronunciation to use (WCAG 3.1.1) -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Signal: an accessibility playground</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;800&display=swap">
+<style>
+/* 1. DESIGN TOKENS: every color lives here, so a theme is just a new set of values.
+      All text pairs are 4.5:1 or better; borders are 3:1 or better. */
+:root{--bg:#eef0fb;--fg:#15133a;--mut:#46446e;--card:#fff;--ac:#3b2fe0;--acfg:#fff;--hot:#c2255c;--bd:#6d6b94;--ok:#0b6b3a;--bad:#b3261e;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#100f26;--fg:#ecebff;--mut:#b9b7e0;--card:#1a1940;--ac:#9a92ff;--acfg:#0e0c2e;--hot:#ff8fb3;--bd:#8f8dc0;--ok:#6fe0a0;--bad:#ff9a92}}
+:root[data-theme=dark]{--bg:#100f26;--fg:#ecebff;--mut:#b9b7e0;--card:#1a1940;--ac:#9a92ff;--acfg:#0e0c2e;--hot:#ff8fb3;--bd:#8f8dc0;--ok:#6fe0a0;--bad:#ff9a92}
+html{scroll-padding-top:5rem;scroll-behavior:smooth}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:1rem/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.1;margin:0}
+h1{font-size:clamp(2.4rem,8vw,4.5rem);font-weight:800;letter-spacing:-.03em}
+h2{font-size:clamp(1.7rem,5vw,2.4rem);font-weight:800;letter-spacing:-.02em;margin-bottom:.6rem}
+h3{font-size:1.2rem;font-weight:500;margin:1.2rem 0 .4rem}
+p{max-width:65ch}
+[hidden]{display:none!important}
+/* Visible focus for every control (WCAG 2.4.7). Never remove without a replacement. */
+:focus-visible{outline:3px solid var(--hot);outline-offset:3px}
+.skip{position:absolute;left:.5rem;top:-4rem;background:var(--ac);color:var(--acfg);padding:.7rem 1rem;z-index:20}
+.skip:focus{top:.5rem}
+.wrap{max-width:60rem;margin:0 auto;padding:0 1.1rem}
+nav.top{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:2px solid var(--bd)}
+nav.top .wrap{display:flex;flex-wrap:wrap;gap:.4rem 1.2rem;align-items:center;padding-block:.5rem}
+nav.top a{color:var(--fg);font-weight:600;padding:.5rem .2rem;min-height:2.75rem;display:inline-flex;align-items:center}
+nav.top button{margin-left:auto}
+.hero{padding:3.5rem 0 2rem}
+.hero p{font-size:1.2rem;color:var(--mut);margin:1rem 0 0}
+section.mod{padding:2.5rem 0;border-top:2px solid var(--bd)}
+.panel{background:var(--card);border:2px solid var(--bd);border-radius:14px;padding:1.2rem;margin:1rem 0}
+.row{display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end}
+label{font-weight:600}
+button,input,select{font:inherit;min-height:2.75rem}
+button{background:var(--card);color:var(--fg);border:2px solid var(--bd);border-radius:10px;padding:.4rem 1rem;cursor:pointer}
+button.pri{background:var(--ac);color:var(--acfg);border-color:var(--ac);font-weight:600}
+input[type=color]{width:4rem;padding:.15rem;border:2px solid var(--bd);border-radius:10px;background:var(--card)}
+/* Contrast lab: the big number is the memorable moment of the page */
+.big{font:800 clamp(3rem,14vw,6rem)/1 "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.04em;margin:.4rem 0}
+.chips{display:flex;flex-wrap:wrap;gap:.5rem;padding:0;list-style:none;margin:.5rem 0}
+.chips li{border:2px solid var(--bd);border-radius:999px;padding:.2rem .8rem;font-weight:600}
+.chips .p{color:var(--ok);border-color:var(--ok)}.chips .f{color:var(--bad);border-color:var(--bad)}
+.pv{border-radius:10px;padding:1rem 1.2rem;margin:1rem 0;border:2px solid var(--bd)}
+/* Accordion + dialog */
+.acc button{display:flex;justify-content:space-between;width:100%;text-align:left;border-radius:0;border-width:0 0 2px}
+.acc button[aria-expanded=true]{background:var(--ac);color:var(--acfg)}
+.acc .body{padding:.8rem;border-bottom:2px solid var(--bd)}
+dialog{background:var(--card);color:var(--fg);border:3px solid var(--fg);border-radius:14px;max-width:24rem}
+dialog::backdrop{background:rgba(10,8,40,.7)}
+.klog{font:.9rem ui-monospace,Menlo,Consolas,monospace;min-height:4rem;padding-left:1.3rem}
+/* Break and fix demos sit on a fixed white surface so Before/After compare fairly in any theme */
+.demo{background:#fff;color:#15133a;border:2px solid #6d6b94;border-radius:10px;padding:1rem;max-width:22rem}
+.demo .hd{font-size:1.4rem;font-weight:700;margin:0}
+.demo.good p{color:#46446e}
+.demo.good input{border:2px solid #555;padding:.4rem;width:100%;background:#fff;color:#15133a}
+.demo.good label{display:block}
+.demo.good button{background:#3b2fe0;color:#fff;border:2px solid #3b2fe0;margin-top:.6rem}
+.demo.good :focus-visible{outline:3px solid #c2255c}
+.demo.good .ok{color:#0b6b3a;font-weight:600;display:block;min-height:1.6em}
+.demo.bad p{color:#b8b8cc}
+.demo.bad h5{font-size:.9rem;margin:.3rem 0}
+.demo.bad *:focus{outline:none}
+.demo.bad input{border:1px solid #ddd;padding:.4rem;width:100%;background:#fff;color:#111}
+.demo.bad .fake{background:#7c74f0;color:#fff;display:inline-block;padding:.5rem 1rem;margin-top:.6rem;cursor:pointer}
+.issue{border-top:2px solid var(--bd);padding:.6rem 0}
+.issue summary{cursor:pointer;font-weight:600;min-height:2.75rem;display:flex;align-items:center}
+pre{background:var(--bg);border:2px solid var(--bd);border-radius:8px;padding:.6rem;overflow-x:auto;white-space:pre-wrap}
+input[type=checkbox],input[type=radio]{width:1.4rem;height:1.4rem;vertical-align:middle}
+progress{width:100%;height:1.1rem}
+footer{padding:2rem 0 3rem;color:var(--mut)}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to main content</a>
+<nav class="top" aria-label="Sections"><div class="wrap">
+ <strong>Signal</strong>
+ <a href="#contrast">Contrast</a><a href="#keys">Keyboard</a><a href="#fix">Break and fix</a>
+ <!-- aria-pressed tells assistive tech this button is a toggle and what state it is in -->
+ <button id="theme" aria-pressed="false">Dark mode</button>
+</div></nav>
+
+<main id="main" tabindex="-1"><div class="wrap">
+ <div class="hero">
+  <h1>Make it work for everyone.</h1>
+  <p>Three short labs on contrast, keyboards and screen readers. Try each one, then read the code to see why it works.</p>
+ </div>
+
+ <!-- MODULE 1 -->
+ <section class="mod" id="contrast" aria-labelledby="h-c">
+  <h2 id="h-c">Contrast lab</h2>
+  <p>WCAG compares the brightness of text and background. Pick two colors and see if people with low vision can read them.</p>
+  <div class="panel">
+   <div class="row">
+    <div><label for="fg">Text color</label><br><input type="color" id="fg" value="#8a8aa8"></div>
+    <div><label for="bg">Background color</label><br><input type="color" id="bg" value="#ffffff"></div>
+    <button id="fix1">Nudge text to pass 4.5:1</button>
+   </div>
+   <!-- aria-live announces the new ratio to screen readers without moving focus -->
+   <p class="big" aria-live="polite"><span id="ratio">0</span>:1</p>
+   <ul class="chips" id="chips"></ul>
+   <div class="pv" id="pv"><strong>Normal text.</strong> <span style="font-size:1.5rem">Large text.</span></div>
+  </div>
+ </section>
+
+ <!-- MODULE 2 -->
+ <section class="mod" id="keys" aria-labelledby="h-k">
+  <h2 id="h-k">Keyboard playground</h2>
+  <p>Put the mouse away. Use Tab, Shift+Tab, Enter, Space and Esc. Every control here is a real <code>button</code>, so the browser does the hard work.</p>
+  <div class="panel">
+   <h3>Accordion</h3>
+   <div class="acc">
+    <button id="a1" aria-expanded="false" aria-controls="b1">Why not use a div as a button?</button>
+    <div class="body" id="b1" role="region" aria-labelledby="a1" hidden>A div cannot take focus and has no role, so keyboard and screen reader users cannot use it (WCAG 2.1.1, 4.1.2).</div>
+    <button id="a2" aria-expanded="false" aria-controls="b2">What does aria-expanded do?</button>
+    <div class="body" id="b2" role="region" aria-labelledby="a2" hidden>It tells a screen reader whether the section is open or closed, since the visual change alone is invisible to it.</div>
+   </div>
+   <h3>Dialog</h3>
+   <button class="pri" id="open">Open dialog</button>
+   <dialog id="dlg" aria-labelledby="dt"><h3 id="dt">Quick check</h3><p>Press Tab: focus stays inside. Press Esc to close and return to the button.</p><button class="pri" id="close">Close</button></dialog>
+   <h3>Key log</h3>
+   <ol class="klog" id="klog" aria-label="Recent key presses"><li>Press any key.</li></ol>
+  </div>
+ </section>
+
+ <!-- MODULE 3 -->
+ <section class="mod" id="fix" aria-labelledby="h-f">
+  <h2 id="h-f">Break and fix</h2>
+  <p>The same signup card, twice. Switch views, then open each issue to see the cause and the repair.</p>
+  <fieldset class="panel"><legend>View</legend>
+   <label><input type="radio" name="v" value="bad" checked> Broken</label>
+   <label><input type="radio" name="v" value="good"> Fixed</label>
+  </fieldset>
+  <div id="stage"></div>
+  <p role="status" id="prog"></p><progress id="pbar" max="6" value="0" aria-label="Issues found"></progress>
+  <div id="issues"></div>
+ </section>
+</div></main>
+<footer><div class="wrap"><p>This tool teaches the basics. Always test with real assistive technology such as NVDA, VoiceOver or TalkBack.</p></div></footer>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* THEME: flip data-theme on <html>; the CSS tokens do the rest */
+const tb=$('#theme');
+tb.onclick=()=>{const dark=document.documentElement.dataset.theme==='dark'
+  ||(!document.documentElement.dataset.theme&&matchMedia('(prefers-color-scheme: dark)').matches);
+ document.documentElement.dataset.theme=dark?'light':'dark';
+ tb.setAttribute('aria-pressed',String(!dark));};
+if(matchMedia('(prefers-color-scheme: dark)').matches)tb.setAttribute('aria-pressed','true');
+
+/* CONTRAST: formulas straight from the WCAG definition */
+const lum=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255)
+  .map(v=>v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2];};
+const ratio=(a,b)=>{const x=lum(a),y=lum(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+const mix=(h,t,p)=>'#'+[1,3,5].map(i=>Math.round(parseInt(h.slice(i,i+2),16)*(1-p)+t*p).toString(16).padStart(2,'0')).join('');
+const TESTS=[['Normal text AA',4.5],['Large text AA',3],['Normal text AAA',7]];
+function upd(){const f=$('#fg').value,b=$('#bg').value,r=ratio(f,b);
+ $('#ratio').textContent=(Math.floor(r*100)/100).toFixed(2); // floor, never round up a failing value
+ /* Result uses text AND an icon, so color is never the only signal (1.4.1) */
+ $('#chips').innerHTML=TESTS.map(([n,t])=>{const ok=r>=t;return '<li class="'+(ok?'p':'f')+'">'+(ok?'\u2714 Pass':'\u2716 Fail')+': '+n+' ('+t+':1)</li>';}).join('');
+ $('#pv').style.cssText='color:'+f+';background:'+b;}
+$('#fg').oninput=$('#bg').oninput=upd;
+$('#fix1').onclick=()=>{const f=$('#fg').value,b=$('#bg').value;const to=lum(b)>.179?0:255;let c=f;
+ for(let k=1;k<=100&&ratio(c,b)<4.5;k++)c=mix(f,to,k/100);$('#fg').value=c;upd();};
+upd();
+
+/* ACCORDION: toggle aria-expanded and the hidden attribute together */
+$$('.acc button').forEach(b=>b.onclick=()=>{const open=b.getAttribute('aria-expanded')==='true';
+ b.setAttribute('aria-expanded',String(!open));$('#'+b.getAttribute('aria-controls')).hidden=open;});
+
+/* DIALOG: the native element traps focus and handles Esc; we only return focus afterwards */
+const dlg=$('#dlg'),op=$('#open');
+op.onclick=()=>dlg.showModal();$('#close').onclick=()=>dlg.close();dlg.onclose=()=>op.focus();
+
+/* KEY LOG: shows what has focus so you can check the tab order (2.4.3) */
+document.addEventListener('keydown',e=>{const el=document.activeElement,l=$('#klog');
+ if(l.firstChild&&l.firstChild.textContent==='Press any key.')l.innerHTML='';
+ const li=document.createElement('li');li.textContent=e.key+' on '+el.tagName.toLowerCase()+' "'+(el.textContent||el.id||'').trim().slice(0,24)+'"';
+ l.prepend(li);while(l.children.length>6)l.lastChild.remove();});
+
+/* BREAK AND FIX */
+const say="document.getElementById('st').textContent='Subscribed!'";
+const BAD='<div class="demo bad"><h5>Newsletter</h5><p>Weekly tips, no spam.</p><input placeholder="Email"><br><div class="fake" onclick="'+say+'">Subscribe</div><span id="st"></span></div>';
+const GOOD='<div class="demo good"><h2 class="hd">Newsletter</h2><p>Weekly tips, no spam.</p><label for="em">Email</label><input id="em" type="email" autocomplete="email"><button type="button" onclick="'+say+'">Subscribe</button><span id="st" class="ok" role="status"></span></div>';
+const draw=()=>{$('#stage').innerHTML=$('input[name=v]:checked').value==='bad'?BAD:GOOD;};
+$$('input[name=v]').forEach(r=>r.onchange=draw);draw();
+const IS=[
+['Low-contrast text','1.4.3','Light grey on white is about 2:1. Aim for 4.5:1.','<p style="color:#b8b8cc">','<p style="color:#46446e">'],
+['Skipped heading level','1.3.1','Screen reader users jump by headings. Use levels in order.','<h5>Newsletter</h5>','<h2>Newsletter</h2>'],
+['Placeholder instead of label','3.3.2','The hint vanishes when typing and many screen readers skip it.','<input placeholder="Email">','<label for="em">Email</label>\n<input id="em">'],
+['Div acting as a button','2.1.1','It cannot be reached with Tab or pressed with Enter.','<div onclick="go()">Subscribe</div>','<button type="button">Subscribe</button>'],
+['Focus outline removed','2.4.7','Keyboard users cannot see where they are.','*:focus{outline:none}',':focus-visible{outline:3px solid #c2255c}'],
+['Silent status message','4.1.3','Nothing is spoken when the message appears.','<span id="st"></span>','<span id="st" role="status"></span>']];
+$('#issues').innerHTML=IS.map((x,i)=>'<details class="issue"><summary>'+(i+1)+'. '+esc(x[0])+' (SC '+x[1]+')</summary>'
+ +'<label><input type="checkbox" class="fnd"> I found this one</label><p>'+esc(x[2])+'</p><p>Before</p><pre><code>'+esc(x[3])+'</code></pre><p>After</p><pre><code>'+esc(x[4])+'</code></pre></details>').join('');
+const prog=()=>{const n=$$('.fnd:checked').length;$('#prog').textContent=n+' of '+IS.length+' issues found';$('#pbar').value=n;};
+$('#issues').addEventListener('change',prog);prog();
+</script>
+</body>
+</html>
